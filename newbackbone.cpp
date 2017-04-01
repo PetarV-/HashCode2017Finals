@@ -386,7 +386,7 @@ int main()
     vector <coord> routers;
     generate_coverdist();
     int lastuncoveredi=0;
-    while (left_uncovered)// && routers.size()<830)
+    while (left_uncovered)
     {
         printf("PROGRESS %d %d\n",left_uncovered,routers.size());
         int ti,tj,bestwall;
@@ -402,8 +402,33 @@ int main()
                         bestwall=coverdist[i][j];
                     }
         }
-        int soli=ti;
-        int solj=tj;
+        int soli,solj;
+        if (bestwall>3)
+        {
+            soli=ti;
+            solj=tj;
+        }
+        else
+        {
+            int maxcover=0;
+            for (int i=0; i<n; i++)
+                for (int j=0; j<m; j++)
+                    if (board[i][j]=='.')
+                    {
+                        vector <coord> sees=coord_value(vector<coord>{{i,j}});
+                        int cscore=0;
+                        for (int t=0; t<sees.size(); t++)
+                            if (covered[sees[t].i][sees[t].j]==0)
+                                cscore++;
+                        if (cscore>maxcover)
+                        {
+                            maxcover=cscore;
+                            soli=i;
+                            solj=j;
+                        }
+                    }
+
+        }
 
         routers.push_back(coord{soli,solj});
         //printf("%d %d\n",soli,solj);
