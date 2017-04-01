@@ -22,7 +22,7 @@ char covered[N][N];
 
 int coverdist[N][N];
 int left_uncovered;
-
+int num_routers_param;
 
 const int direction_count=8;
 int mov[8][2]=
@@ -314,7 +314,8 @@ vector<coord> make_initial(int num_routers)
 	return res;
 }
 
-int coverage[N][N];
+int coverage[N][N], coverage_bak[N][N];
+vector<coord> res_bak; int score_bak;
 
 void mod_coverage(coord router, int diff, int &score)
 {
@@ -343,6 +344,24 @@ void perturb(coord &router)
 	}
 }
 
+void snapshot(vector<coord> &res, int score)
+{
+	res_bak = res;
+	score_bak = score;
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			coverage_bak[i][j] = coverage[i][j];
+}
+
+void restore(vector<coord> &res, int &score)
+{
+	res = res_bak;
+	score = score_bak;
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			coverage[i][j] = coverage_bak[i][j];
+}
+
 vector<coord> solve(vector<coord> res)
 {
 	//vector<coord> res = make_initial(budget / (cost_router + max(n, m)));
@@ -350,8 +369,7 @@ vector<coord> solve(vector<coord> res)
 	for(coord router : res)
 		for(coord tile : coord_value({router}))
 			coverage[tile.i][tile.j]++;
-
-
+	
 	int score = 0;
 	for(int i = 0; i < n; i++)
 		for(int j = 0; j < m; j++)
@@ -360,7 +378,9 @@ vector<coord> solve(vector<coord> res)
 	clock_t start = clock();
 	int ttl = 15000;
 	int snapshot_id = 0;
-		
+
+	snapshot(res, score);
+	
 	for(int iter = 0; ; iter++)
 	{
 		if(iter % 10000 == 9999) fprintf(stderr, "%d (%5d msec), score = %d\n", iter + 1, (clock() - start) * 1000 / CLOCKS_PER_SEC, score);
@@ -384,20 +404,31 @@ vector<coord> solve(vector<coord> res)
 		}
 		else
 			score = new_score;
-
-		if(clock() - start > snapshot_id * 30 * CLOCKS_PER_SEC)
-		{
-			string name = "out/" + case_name + "." + to_string(snapshot_id) + ".bak";
-			printf("Saving snapshot %s... ", name.c_str());
-			write_output(name, res, make_backbone(res));
-			printf("Done.\n");
-			snapshot_id++;
-		}
 		
 		if(ttl < 0)
 		{
 			printf("Stopped improving, stopping climber.\n");
 			break;
+		}
+
+		if(iter % 10000 == 9998)
+		{
+			int cost = cost_router * res.size() + cost_edge * make_backbone(res).size();
+			if(cost > budget)
+			{
+				printf("Warning: over budget by %d, reverting!\n", budget - cost);
+			    restore(res, score);
+			}
+			snapshot(res, score);
+
+			if(clock() - start > snapshot_id * 30 * CLOCKS_PER_SEC)
+			{
+				string name = "out/" + case_name + "." + to_string(snapshot_id) + ".bak";
+				printf("Saving snapshot %s (w/ score %d)... ", name.c_str(), score);
+				write_output(name, res, make_backbone(res));
+				printf("Done.\n");
+				snapshot_id++;
+			}
 		}
 	}
 
@@ -411,13 +442,14 @@ int main(int argc, char *argv[])
     //freopen(test_files[2],"r",stdin);
     //freopen("dump.txt","w",stdout);
 
-	if(argc != 2)
+	if(argc != 3)
 	{
-		printf("Usage: wall <case name>\n");
+		printf("Usage: wall <case name> <num of routers>\n");
 		return 1;
 	}
 	case_name = argv[1];
-	printf("Solving case %s...\n", case_name.c_str());
+	num_routers_param = atoi(argv[2]);
+	printf("Solving case %s (with %d routers)...\n", case_name.c_str(), num_routers_param);
 	freopen(("tests/" + case_name + ".in").c_str(), "r", stdin);
 	
     scanf("%d %d %d", &n, &m, &radius);
@@ -445,7 +477,7 @@ int main(int argc, char *argv[])
     vector <coord> routers;
     generate_coverdist();
     int lastuncoveredi=0;
-    while (left_uncovered && routers.size()<830)
+    while (left_uncovered && routers.size()<num_routers_param)
     {
         if(routers.size() % 20 == 0) printf("PROGRESS %d %d\n",left_uncovered,routers.size());
         int ti,tj,bestwall;
