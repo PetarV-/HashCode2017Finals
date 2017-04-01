@@ -526,11 +526,24 @@ vector<coord> solve(vector<coord> res)
 	{
 		vector<coord> next = res;
 		swap(next[0], next[rand() % next.size()]);
+
+		next[0] = next[1];
+
+		for(int i = 0; i < n; i++)
+			for(int j = 0; j < m; j++)
+				coverage[i][j] = 0;
+		
+		for(coord router : next)
+			for(coord tile : coord_value({router}))
+				coverage[tile.i][tile.j]++;
+	
+	
+		
 		do
 		{
 		    next[0].i = rand() % n;
 		    next[0].j = rand() % m;
-		} while(board[next[0].i][next[0].j] != '.');
+		} while(board[next[0].i][next[0].j] != '.' || covered[next[0].i][next[0].j]);
 
 		int next_score;
 	    next = solve_local(next, next_score);
