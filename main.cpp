@@ -1,6 +1,7 @@
 #include <iostream>
 #include <queue>
 #include <vector>
+#include <cassert>
 
 using namespace std;
 
@@ -103,9 +104,9 @@ int value(vector<coord> routers)
     for (int i=0;i<routers.size();i++)
     {
         // check if outta bounds
-        if (routers[i].i < 0 || routers[i].i > n - 1 || routers[i].j < 0 || routers[i].j > m - 1) return -2;
+        if (routers[i].i < 0 || routers[i].i > n - 1 || routers[i].j < 0 || routers[i].j > m - 1) assert(false);
         // check if wallhacked
-        if (board[routers[i].i][routers[i].j] == '#') return -1;
+        if (board[routers[i].i][routers[i].j] == '#') assert(false);
         // otherwise, expand up
         for (int dx=0;dx>=-radius;dx--)
         {
@@ -168,6 +169,94 @@ int value(vector<coord> routers)
                 {
                     mark[xt][yt] = true;
                     if (board[xt][yt] == '.') ret++;
+                }
+            }
+        }
+    }
+    return ret;
+}
+
+vector<coord> coord_value(vector<coord> routers)
+{
+    bool mark[n][m];
+    for (int i=0;i<n;i++)
+    {
+        for (int j=0;j<m;j++)
+        {
+            mark[i][j] = false;
+        }
+    }
+
+    vector<coord> ret = {};
+
+    for (int i=0;i<routers.size();i++)
+    {
+        // check if outta bounds
+        if (routers[i].i < 0 || routers[i].i > n - 1 || routers[i].j < 0 || routers[i].j > m - 1) assert(false);
+        // check if wallhacked
+        if (board[routers[i].i][routers[i].j] == '#') assert(false);
+        // otherwise, expand up
+        for (int dx=0;dx>=-radius;dx--)
+        {
+            int xt = routers[i].i + dx;
+            if (xt < 0) break;
+            
+            // top-left
+            for (int dy=0;dy>=-radius;dy--)
+            {
+                int yt = routers[i].j + dy;
+                if (yt < 0) break;
+                if (board[xt][yt] == '#') break; // no need to go on
+                if (!mark[xt][yt])
+                {
+                    mark[xt][yt] = true;
+                    if (board[xt][yt] == '.') ret.push_back({xt, yt});
+                }
+            }
+
+            // top-right
+            for (int dy=0;dy<=radius;dy++)
+            {
+                int yt = routers[i].j + dy;
+                if (yt > m - 1) break;
+                if (board[xt][yt] == '#') break;
+                if (!mark[xt][yt])
+                {
+                    mark[xt][yt] = true;
+                    if (board[xt][yt] == '.') ret.push_back({xt, yt});
+                }
+            }
+        }
+
+        // now expand down
+        for (int dx=0;dx<=radius;dx++)
+        {
+            int xt = routers[i].i + dx;
+            if (xt > n - 1) break;
+            
+            // bottom-left
+            for (int dy=0;dy>=-radius;dy--)
+            {
+                int yt = routers[i].j + dy;
+                if (yt < 0) break;
+                if (board[xt][yt] == '#') break; // no need to go on
+                if (!mark[xt][yt])
+                {
+                    mark[xt][yt] = true;
+                    if (board[xt][yt] == '.') ret.push_back({xt, yt});
+                }
+            }
+
+            // top-right
+            for (int dy=0;dy<=radius;dy++)
+            {
+                int yt = routers[i].j + dy;
+                if (yt > m - 1) break;
+                if (board[xt][yt] == '#') break;
+                if (!mark[xt][yt])
+                {
+                    mark[xt][yt] = true;
+                    if (board[xt][yt] == '.') ret.push_back({xt, yt});
                 }
             }
         }
