@@ -480,7 +480,7 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 			break;
 		}
 
-		if(iter % 10000 == 9998)
+		if(clock() > snapshot_id * 60 * CLOCKS_PER_SEC)
 		{
 			int cost = cost_router * res.size() + cost_edge * make_backbone(res).size();
 			if(cost > budget)
@@ -490,7 +490,7 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 			}
 			snapshot(res, score);
 
-			if(clock() > snapshot_id * 30 * CLOCKS_PER_SEC)
+			if(clock() > snapshot_id * 60 * CLOCKS_PER_SEC)
 			{
 				string name = "out/" + case_name + "." + to_string(snapshot_id) + ".bak";
 				int cost = cost_router * res.size() + cost_edge * make_backbone(res).size();
