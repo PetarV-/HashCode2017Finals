@@ -291,6 +291,9 @@ vector<coord> make_backbone(vector<coord> routers)
 }
 
 // ----------
+
+string case_name;
+
 // ----------
 
 vector<coord> make_initial(int num_routers)
@@ -355,8 +358,10 @@ vector<coord> solve(vector<coord> res)
 			score += coverage[i][j] > 0;
 
 	clock_t start = clock();
-	int ttl = 5000;
-	for(int iter = 0; clock() - start < 150 * CLOCKS_PER_SEC; iter++)
+	int ttl = 15000;
+	int snapshot_id = 0;
+		
+	for(int iter = 0; ; iter++)
 	{
 		if(iter % 10000 == 9999) fprintf(stderr, "%d (%5d msec), score = %d\n", iter + 1, (clock() - start) * 1000 / CLOCKS_PER_SEC, score);
 		int curr = rand() % res.size();
@@ -368,7 +373,7 @@ vector<coord> solve(vector<coord> res)
 		perturb(res[curr]);
 		mod_coverage(res[curr], +1, new_score);
 
-		if(new_score > score) ttl = 5000;
+		if(new_score > score) ttl = 15000;
 		else ttl--;
 		
 		if(new_score < score)
@@ -380,7 +385,20 @@ vector<coord> solve(vector<coord> res)
 		else
 			score = new_score;
 
-		if(ttl < 0) printf("Stopped improving, stopping climber.\n");
+		if(clock() - start > snapshot_id * 30 * CLOCKS_PER_SEC)
+		{
+			string name = "out/" + case_name + "." + to_string(snapshot_id) + ".bak";
+			printf("Saving snapshot %s... ", name.c_str());
+			write_output(name, res, make_backbone(res));
+			printf("Done.\n");
+			snapshot_id++;
+		}
+		
+		if(ttl < 0)
+		{
+			printf("Stopped improving, stopping climber.\n");
+			break;
+		}
 	}
 
 	return res;
@@ -388,10 +406,20 @@ vector<coord> solve(vector<coord> res)
 
 // ----------
 
-int main()
+int main(int argc, char *argv[])
 {
-    freopen(test_files[2],"r",stdin);
+    //freopen(test_files[2],"r",stdin);
     //freopen("dump.txt","w",stdout);
+
+	if(argc != 2)
+	{
+		printf("Usage: wall <case name>\n");
+		return 1;
+	}
+	case_name = argv[1];
+	printf("Solving case %s...\n", case_name.c_str());
+	freopen(("tests/" + case_name + ".in").c_str(), "r", stdin);
+	
     scanf("%d %d %d", &n, &m, &radius);
     scanf("%d %d %d", &cost_edge, &cost_router, &budget);
     scanf("%d %d", &start_i, &start_j);
