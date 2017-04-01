@@ -39,9 +39,9 @@ bool in_mst[N];
 bool backbone[N][N];
 vector<coord> make_backbone(vector<coord> routers)
 {
-	routers.push_back({start_i, start_j});
-	
-	priority_queue<edge> edges;
+    routers.push_back({start_i, start_j});
+    
+    priority_queue<edge> edges;
 	for(int i = 0; i < routers.size(); i++)
 		in_mst[i] = false;
 
@@ -71,17 +71,17 @@ vector<coord> make_backbone(vector<coord> routers)
 		backbone[ii][jj] = true;
 		while(ii != routers[curr.to].i || jj != routers[curr.to].j)
 		{
-			ii += sgn(routers[curr.to].i - ii);
-			jj += sgn(routers[curr.to].j - jj);
-			backbone[ii][jj] = true;
+		    ii += sgn(routers[curr.to].i - ii);
+		    jj += sgn(routers[curr.to].j - jj);
+		    backbone[ii][jj] = true;
 		}
 	}
-
+	
 	vector<coord> res;
 	for(int i = 0; i < n; i++)
-		for(int j = 0; j < n; j++)
-			if(backbone[i][j])
-				res.push_back({i, j});
+	    for(int j = 0; j < n; j++)
+		    if(backbone[i][j] && (i != start_i || j != start_j))
+			    res.push_back({i, j});
 	return res;
 }
 
@@ -105,7 +105,7 @@ int value(vector<coord> routers)
         // check if outta bounds
         if (routers[i].i < 0 || routers[i].i > n - 1 || routers[i].j < 0 || routers[i].j > m - 1) return -2;
         // check if wallhacked
-        if (mat[routers[i].i][routers[i].j] == '#') return -1;
+        if (board[routers[i].i][routers[i].j] == '#') return -1;
         // otherwise, expand up
         for (int dx=0;dx>=-radius;dx--)
         {
@@ -117,11 +117,11 @@ int value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt < 0) break;
-                if (mat[xt][yt] == '#') break; // no need to go on
+                if (board[xt][yt] == '#') break; // no need to go on
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret++;
+                    if (board[xt][yt] == '.') ret++;
                 }
             }
 
@@ -130,11 +130,11 @@ int value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt > m - 1) break;
-                if (mat[xt][yt] == '#') break;
+                if (board[xt][yt] == '#') break;
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret++;
+                    if (board[xt][yt] == '.') ret++;
                 }
             }
         }
@@ -150,11 +150,11 @@ int value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt < 0) break;
-                if (mat[xt][yt] == '#') break; // no need to go on
+                if (board[xt][yt] == '#') break; // no need to go on
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret++;
+                    if (board[xt][yt] == '.') ret++;
                 }
             }
 
@@ -163,17 +163,42 @@ int value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt > m - 1) break;
-                if (mat[xt][yt] == '#') break;
+                if (board[xt][yt] == '#') break;
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret++;
+                    if (board[xt][yt] == '.') ret++;
                 }
             }
         }
     }
     return ret;
 }
+
+// -----------
+// output
+
+void write_output(string filename, vector<coord> routers, vector<coord> backbone)
+{
+    FILE *f = fopen(filename.c_str(), "w");
+    if(!f)
+    {
+		fprintf(stderr, "Opening file %s for writing failed!\n", filename.c_str());
+		return;
+    }
+
+    fprintf(f, "%d\n", backbone.size());
+	for(coord i : backbone)
+		fprintf(f, "%d %d\n", i.i, i.j);
+
+	fprintf(f, "%d\n", routers.size());
+	for(coord i : routers)
+		fprintf(f, "%d %d\n", i.i, i.j);
+
+	fclose(f);
+}
+
+// ----------
 
 int main()
 {
@@ -184,22 +209,6 @@ int main()
     for(int i = 0; i < n; i++)
 		for(int j = 0; j < m; j++)
 			scanf(" %c", &board[i][j]);
-
-    printf("dimensions: %d x %d\n", n, m);
-    int total_target = 0;
-    for(int i = 0; i < n; i++)
-		for(int j = 0; j < m; j++)
-			total_target += board[i][j] == '.';
-    printf("total targets: %d\n", total_target);
-    int area = (2 * radius + 1) * (2 * radius + 1);
-    printf("routers to cover: %d\n", (total_target + area - 1) / area);
-
-    printf("available routers: %d\n", budget / cost_router);
-
-    printf("upper bound for score: %dM\n", ((long long)total_target * 1000LL + (long long)budget) / 1000000LL);
-
-	for(auto i : make_backbone({{0,0}, {1,4}, {5,5}, {3,3}, {6,7}}))
-		printf("%d %d\n", i.i, i.j);
 	
     return 0;
 }
