@@ -108,6 +108,10 @@ int value(vector<coord> routers)
         // check if wallhacked
         if (board[routers[i].i][routers[i].j] == '#') assert(false);
         // otherwise, expand up
+
+        int ly = -1;
+        int ry = m;
+
         for (int dx=0;dx>=-radius;dx--)
         {
             int xt = routers[i].i + dx;
@@ -117,8 +121,12 @@ int value(vector<coord> routers)
             for (int dy=0;dy>=-radius;dy--)
             {
                 int yt = routers[i].j + dy;
-                if (yt < 0) break;
-                if (board[xt][yt] == '#') break; // no need to go on
+                if (yt <= ly) break;
+                if (board[xt][yt] == '#') 
+                {
+                    ly = max(ly, yt);
+                    break; // no need to go on
+                }
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
@@ -130,8 +138,12 @@ int value(vector<coord> routers)
             for (int dy=0;dy<=radius;dy++)
             {
                 int yt = routers[i].j + dy;
-                if (yt > m - 1) break;
-                if (board[xt][yt] == '#') break;
+                if (yt >= ry) break;
+                if (board[xt][yt] == '#') 
+                {
+                    ry = min(ry, yt);
+                    break;
+                }
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
@@ -139,6 +151,9 @@ int value(vector<coord> routers)
                 }
             }
         }
+
+        ly = -1;
+        ry = m;
 
         // now expand down
         for (int dx=0;dx<=radius;dx++)
@@ -150,8 +165,12 @@ int value(vector<coord> routers)
             for (int dy=0;dy>=-radius;dy--)
             {
                 int yt = routers[i].j + dy;
-                if (yt < 0) break;
-                if (board[xt][yt] == '#') break; // no need to go on
+                if (yt <= ly) break;
+                if (board[xt][yt] == '#') 
+                {
+                    ly = max(ly, yt);
+                    break; // no need to go on
+                }
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
@@ -163,8 +182,12 @@ int value(vector<coord> routers)
             for (int dy=0;dy<=radius;dy++)
             {
                 int yt = routers[i].j + dy;
-                if (yt > m - 1) break;
-                if (board[xt][yt] == '#') break;
+                if (yt >= ry) break;
+                if (board[xt][yt] == '#') 
+                {
+                    ry = min(ry, yt);
+                    break;
+                }
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
@@ -196,6 +219,10 @@ vector<coord> coord_value(vector<coord> routers)
         // check if wallhacked
         if (board[routers[i].i][routers[i].j] == '#') assert(false);
         // otherwise, expand up
+
+        int ly = -1;
+        int ry = m;
+
         for (int dx=0;dx>=-radius;dx--)
         {
             int xt = routers[i].i + dx;
@@ -205,8 +232,12 @@ vector<coord> coord_value(vector<coord> routers)
             for (int dy=0;dy>=-radius;dy--)
             {
                 int yt = routers[i].j + dy;
-                if (yt < 0) break;
-                if (board[xt][yt] == '#') break; // no need to go on
+                if (yt <= ly) break;
+                if (board[xt][yt] == '#') 
+                {
+                    ly = max(ly, yt);
+                    break; // no need to go on
+                }
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
@@ -218,8 +249,12 @@ vector<coord> coord_value(vector<coord> routers)
             for (int dy=0;dy<=radius;dy++)
             {
                 int yt = routers[i].j + dy;
-                if (yt > m - 1) break;
-                if (board[xt][yt] == '#') break;
+                if (yt >= ry) break;
+                if (board[xt][yt] == '#') 
+                {
+                    ry = min(ry, yt);
+                    break;
+                }
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
@@ -227,6 +262,9 @@ vector<coord> coord_value(vector<coord> routers)
                 }
             }
         }
+        
+        ly = -1;
+        ry = m;
 
         // now expand down
         for (int dx=0;dx<=radius;dx++)
@@ -238,8 +276,12 @@ vector<coord> coord_value(vector<coord> routers)
             for (int dy=0;dy>=-radius;dy--)
             {
                 int yt = routers[i].j + dy;
-                if (yt < 0) break;
-                if (board[xt][yt] == '#') break; // no need to go on
+                if (yt <= ly) break;
+                if (board[xt][yt] == '#') 
+                {
+                    ly = max(ly, yt);
+                    break; // no need to go on
+                }
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
@@ -251,8 +293,12 @@ vector<coord> coord_value(vector<coord> routers)
             for (int dy=0;dy<=radius;dy++)
             {
                 int yt = routers[i].j + dy;
-                if (yt > m - 1) break;
-                if (board[xt][yt] == '#') break;
+                if (yt >= ry) break;
+                if (board[xt][yt] == '#') 
+                {
+                    ry = min(ry, yt);
+                    break;
+                }
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
