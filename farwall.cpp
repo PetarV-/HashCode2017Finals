@@ -3,6 +3,7 @@
 #include <queue>
 #include <cstdio>
 #include <cassert>
+#include <algorithm>
 
 using namespace std;
 
@@ -320,15 +321,18 @@ int main()
         }
     vector <coord> routers;
     generate_coverdist();
+    int lastuncoveredi=0;
     while (left_uncovered)
     {
         int ti,tj;
-        for (int i=0; i<n; i++)
+        for (int i=lastuncoveredi; i<n; i++)
             for (int j=0; j<m; j++)
                 if (covered[i][j]==0)
                 {
+                    lastuncoveredi=i;
                     ti=i;
                     tj=j;
+                    break;
                 }
         vector <coord> seen=coord_value(vector<coord>{{ti,tj}});
         int soli,solj,solval;
