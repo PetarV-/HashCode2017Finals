@@ -348,6 +348,6 @@ int main()
         generate_coverdist();
     }
 
-    write_output("out/tmp.txt", routers, make_backbone(routers));
+    write_output("out/charleston_road.out", routers, make_backbone(routers));
     return 0;
 }
