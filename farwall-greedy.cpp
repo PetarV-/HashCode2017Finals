@@ -362,6 +362,7 @@ void restore(vector<coord> &res, int &score)
 			coverage[i][j] = coverage_bak[i][j];
 }
 
+int snapshot_id = 0;
 vector<coord> solve_local(vector<coord> res, int &out_score)
 {
 	//vector<coord> res = make_initial(budget / (cost_router + max(n, m)));
@@ -381,7 +382,6 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 
 	clock_t start = clock();
 	int ttl = 15000;
-	int snapshot_id = 0;
 
 	snapshot(res, score);
 	
@@ -397,7 +397,7 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 		perturb(res[curr]);
 		mod_coverage(res[curr], +1, new_score);
 
-		if(new_score > score) ttl = 2000;
+		if(new_score > score) ttl = 10000;
 		else ttl--;
 		
 		if(new_score < score)
