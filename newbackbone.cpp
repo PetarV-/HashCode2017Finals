@@ -20,6 +20,12 @@ struct coord
     {
         return i!=op.i || j!=op.j;
     }
+    inline bool operator < (const coord &op) const
+    {
+        if (i!=op.i)
+            return i<op.i;
+        return j<op.j;
+    }
 };
 
 char covered[N][N];
@@ -359,7 +365,7 @@ vector<coord> make_backbone(vector<coord> routers)
 
 int main()
 {
-    freopen(test_files[0],"r",stdin);
+    freopen(test_files[1],"r",stdin);
     //freopen("dump.txt","w",stdout);
     scanf("%d %d %d", &n, &m, &radius);
     scanf("%d %d %d", &cost_edge, &cost_router, &budget);
@@ -386,9 +392,11 @@ int main()
     vector <coord> routers;
     generate_coverdist();
     int lastuncoveredi=0;
+    int bindwall=0;
     while (left_uncovered)
     {
-        printf("PROGRESS %d %d\n",left_uncovered,routers.size());
+        if (routers.size()%50==0)
+            printf("PROGRESS %d %d\n",left_uncovered,routers.size());
         int ti,tj,bestwall;
         bestwall=-1;
         for (int i=0; i<n; i++)
@@ -410,33 +418,66 @@ int main()
         }
         else
         {
-            int maxcover=0;
-            for (int i=0; i<n; i++)
-                for (int j=0; j<m; j++)
-                    if (board[i][j]=='.')
-                    {
-                        vector <coord> sees=coord_value(vector<coord>{{i,j}});
-                        int cscore=0;
-                        for (int t=0; t<sees.size(); t++)
-                            if (covered[sees[t].i][sees[t].j]==0)
-                                cscore++;
-                        if (cscore>maxcover)
-                        {
-                            maxcover=cscore;
-                            soli=i;
-                            solj=j;
-                        }
-                    }
-
+            bindwall=1;
+            break;
         }
-
         routers.push_back(coord{soli,solj});
-        //printf("%d %d\n",soli,solj);
-        //fflush(stdout);
         vector <coord> seen=coord_value(vector<coord>{{soli,solj}});
         for (int i=0; i<seen.size(); i++)
             covered[seen[i].i][seen[i].j]=1;
         generate_coverdist();
+    }
+    priority_queue <pair <int,coord> > fields_covered;
+    for (int i=0; i<n; i++)
+        for (int j=0; j<m; j++)
+            if (board[i][j]=='.')
+            {
+                vector <coord> sees=coord_value(vector<coord>{{i,j}});
+                int cscore=0;
+                for (int t=0; t<sees.size(); t++)
+                    if (covered[sees[t].i][sees[t].j]==0)
+                        cscore++;
+                fields_covered.push(make_pair(cscore,coord{i,j}));
+            }
+    while (left_uncovered)
+    {
+         pair <int,coord> najbolji=fields_covered.top();
+        fields_covered.pop();
+        int i=najbolji.second.i;
+        int j=najbolji.second.j;
+
+        vector <coord> sees=coord_value(vector<coord>{{i,j}});
+        int cscore=0;
+        for (int t=0; t<sees.size(); t++)
+            if (covered[sees[t].i][sees[t].j]==0)
+                cscore++;
+        int soli,solj;
+        bool passed;
+        if (cscore==najbolji.first)
+        {
+            soli=i;
+            solj=j;
+            passed=true;
+        }
+        else
+        {
+            fields_covered.push(make_pair(cscore,najbolji.second));
+            passed=false;
+        }
+
+        if (passed)
+        {
+            routers.push_back(coord{soli,solj});
+            vector <coord> seen=coord_value(vector<coord>{{soli,solj}});
+            for (int i=0; i<seen.size(); i++)
+            {
+                if (covered[seen[i].i][seen[i].j]==0)
+                {
+                    covered[seen[i].i][seen[i].j]=1;
+                    left_uncovered--;
+                }
+            }
+        }
     }
 
     write_output("out/charleston_road.out", routers, make_backbone(routers));
