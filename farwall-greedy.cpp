@@ -16,6 +16,10 @@ char board[N][N];
 struct coord
 {
     int i, j;
+    inline bool operator != (const coord &op) const
+    {
+        return i!=op.i || j!=op.j;
+    }
 };
 
 char covered[N][N];
@@ -210,14 +214,14 @@ void write_output(string filename, vector<coord> routers, vector<coord> backbone
 }
 
 // ----------
-// ----------
-// backbone
+
 
 struct edge
 {
 	int from, to;
 	int len;
 } ;
+
 
 bool operator<(edge a, edge b)
 {
@@ -234,60 +238,120 @@ int sgn(int x) { return x ? (x > 0 ? 1 : -1) : 0; }
 
 bool in_mst[N];
 bool backbone[N][N];
+int backcomp[N][N];
+coord backedge[N][N];
+
+vector <coord> markcomp(coord start,int col)
+{
+    queue <coord> pq;
+    vector <coord> comp_parts;
+    pq.push(start);
+    backcomp[start.i][start.j]=col;
+    backedge[start.i][start.j]=coord{start.i,start.j};
+    while (pq.size())
+    {
+        coord cur=pq.front();
+        pq.pop();
+        comp_parts.push_back(cur);
+        for (int d=0; d<direction_count; d++)
+        {
+            int ni=cur.i+mov[d][0];
+            int nj=cur.j+mov[d][1];
+            if (backcomp[ni][nj]==0 && backbone[ni][nj]==true)
+            {
+                pq.push(coord{ni,nj});
+                backcomp[ni][nj]=col;
+                backedge[ni][nj]=coord{ni,nj};
+            }
+        }
+    }
+    return comp_parts;
+}
+
 vector<coord> make_backbone(vector<coord> routers)
 {
-    routers.push_back({start_i, start_j});
-	swap(routers[0], routers[routers.size() - 1]);
-
-    priority_queue<edge> edges;
-	for(int i = 0; i < routers.size(); i++)
-		in_mst[i] = false;
-
-	for(int i = 0; i < n; i++)
-		for(int j = 0; j < m; j++)
-			backbone[i][j] = false;
-
-	in_mst[0] = true;
-	for(int i = 1; i < routers.size(); i++)
-		edges.push({0, i, dist(routers[0], routers[i])});
-
-	vector<coord> res;
-	for(int iter = 1; iter < routers.size(); iter++)
-	{
-		while(in_mst[edges.top().to])
-			edges.pop();
-
-		edge curr = edges.top();
-		edges.pop();
-
-//		printf("(%d,%d) -> (%d,%d)\n", routers[curr.from].i, routers[curr.from].j, routers[curr.to].i, routers[curr.to].j);
-
-		in_mst[curr.to] = true;
-		for(int i = 0; i < routers.size(); i++)
-			if(!in_mst[i])
-				edges.push({curr.to, i, dist(routers[curr.to], routers[i])});
-
-		// draw edge
-		int ii = routers[curr.from].i, jj = routers[curr.from].j;
-		while(ii != routers[curr.to].i || jj != routers[curr.to].j)
-		{
-//			printf("%d %d\n", ii, jj);
-		    ii += sgn(routers[curr.to].i - ii);
-		    jj += sgn(routers[curr.to].j - jj);
-			res.push_back({ii, jj});
-		}
-		res.push_back({ii, jj});
-	}
-
-	vector<coord> real_res;
-	for(coord i : res)
-	{
-		if(!backbone[i.i][i.j])
-			real_res.push_back(i);
-		backbone[i.i][i.j] = true;
-	}
-
-	return real_res;
+    backbone[start_i][start_j]=true;
+    for (int i=0; i<routers.size(); i++)
+        backbone[routers[i].i][routers[i].j]=true;
+    int compnum;
+    do
+    {
+        compnum=0;
+        for (int i=0; i<n; i++)
+            for (int j=0; j<m; j++)
+            {
+                backcomp[i][j]=0;
+                backedge[i][j]=coord{0,0};
+            }
+        queue <coord> pq;
+        for (int i=0; i<n; i++)
+            for (int j=0; j<m; j++)
+                if (backbone[i][j] && backcomp[i][j]==0)
+                {
+                    compnum++;
+                    vector <coord> comp=markcomp(coord{i,j},compnum);
+                    for (int i=0; i<comp.size(); i++)
+                        pq.push(comp[i]);
+                }
+//        printf("%d\n",compnum);
+        if (compnum>1)
+        {
+            while (pq.size())
+            {
+                coord cur=pq.front();
+                //printf("PQ SIZE %d\n",pq.size());
+                //printf("POINT %d %d\n",cur.i,cur.j);
+                pq.pop();
+                for (int d=0; d<direction_count; d++)
+                {
+                    int ni=cur.i+mov[d][0];
+                    int nj=cur.j+mov[d][1];
+                    if (backcomp[ni][nj]==0)
+                    {
+                        backcomp[ni][nj]=backcomp[cur.i][cur.j];
+                        backedge[ni][nj]=cur;
+                        pq.push(coord{ni,nj});
+                        continue;
+                    }
+                    if (backcomp[ni][nj]!=backcomp[cur.i][cur.j])
+                    {
+                        //printf("COMPS %d %d\n",backcomp[ni][nj],backcomp[cur.i][cur.j]);
+                        coord addpos=coord{ni,nj};
+                        while (backedge[addpos.i][addpos.j]!=addpos)
+                        {
+                            backbone[addpos.i][addpos.j]=true;
+                            addpos=backedge[addpos.i][addpos.j];
+                        }
+                        addpos=cur;
+                        while (backedge[addpos.i][addpos.j]!=addpos)
+                        {
+                            backbone[addpos.i][addpos.j]=true;
+                            addpos=backedge[addpos.i][addpos.j];
+                        }
+                        while (pq.size())
+                            pq.pop();
+                        break;
+                    }
+                }
+            }
+        }
+    } while (compnum>1);
+    vector <coord> backbone_fields;
+    backbone_fields.push_back(coord{start_i,start_j});
+    backbone[start_i][start_j]=0;
+    for (int i=0; i<backbone_fields.size(); i++)
+        for (int d=0; d<direction_count; d++)
+        {
+            int ni=backbone_fields[i].i+mov[d][0];
+            int nj=backbone_fields[i].j+mov[d][1];
+            if (backbone[ni][nj])
+            {
+                backbone[ni][nj]=0;
+                backbone_fields.push_back(coord{ni,nj});
+            }
+        }
+    backbone_fields.erase(backbone_fields.begin());
+    return backbone_fields;
 }
 
 // ----------
@@ -362,6 +426,7 @@ void restore(vector<coord> &res, int &score)
 			coverage[i][j] = coverage_bak[i][j];
 }
 
+clock_t start;
 int snapshot_id = 0;
 vector<coord> solve_local(vector<coord> res, int &out_score)
 {
@@ -380,7 +445,7 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 		for(int j = 0; j < m; j++)
 			score += coverage[i][j] > 0;
 
-	clock_t start = clock();
+    start = clock();
 	int ttl = 15000;
 
 	snapshot(res, score);
@@ -425,7 +490,7 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 			}
 			snapshot(res, score);
 
-			if(clock() - start > snapshot_id * 30 * CLOCKS_PER_SEC)
+			if(clock() > snapshot_id * 30 * CLOCKS_PER_SEC)
 			{
 				string name = "out/" + case_name + "." + to_string(snapshot_id) + ".bak";
 				int cost = cost_router * res.size() + cost_edge * make_backbone(res).size();
