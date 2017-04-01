@@ -15,6 +15,8 @@ struct coord
 } ;
 
 // ----------
+
+// ----------
 // backbone
 
 struct edge
@@ -41,7 +43,8 @@ bool backbone[N][N];
 vector<coord> make_backbone(vector<coord> routers)
 {
     routers.push_back({start_i, start_j});
-    
+	swap(routers[0], routers[routers.size() - 1]);
+
     priority_queue<edge> edges;
 	for(int i = 0; i < routers.size(); i++)
 		in_mst[i] = false;
@@ -49,11 +52,12 @@ vector<coord> make_backbone(vector<coord> routers)
 	for(int i = 0; i < n; i++)
 		for(int j = 0; j < m; j++)
 			backbone[i][j] = false;
-	
+
 	in_mst[0] = true;
 	for(int i = 1; i < routers.size(); i++)
 		edges.push({0, i, dist(routers[0], routers[i])});
 
+	vector<coord> res;
 	for(int iter = 1; iter < routers.size(); iter++)
 	{
 		while(in_mst[edges.top().to])
@@ -62,6 +66,8 @@ vector<coord> make_backbone(vector<coord> routers)
 		edge curr = edges.top();
 		edges.pop();
 
+//		printf("(%d,%d) -> (%d,%d)\n", routers[curr.from].i, routers[curr.from].j, routers[curr.to].i, routers[curr.to].j);
+
 		in_mst[curr.to] = true;
 		for(int i = 0; i < routers.size(); i++)
 			if(!in_mst[i])
@@ -69,21 +75,25 @@ vector<coord> make_backbone(vector<coord> routers)
 
 		// draw edge
 		int ii = routers[curr.from].i, jj = routers[curr.from].j;
-		backbone[ii][jj] = true;
 		while(ii != routers[curr.to].i || jj != routers[curr.to].j)
 		{
+//			printf("%d %d\n", ii, jj);
 		    ii += sgn(routers[curr.to].i - ii);
 		    jj += sgn(routers[curr.to].j - jj);
-		    backbone[ii][jj] = true;
+			res.push_back({ii, jj});
 		}
+		res.push_back({ii, jj});
 	}
-	
-	vector<coord> res;
-	for(int i = 0; i < n; i++)
-	    for(int j = 0; j < n; j++)
-		    if(backbone[i][j] && (i != start_i || j != start_j))
-			    res.push_back({i, j});
-	return res;
+
+	vector<coord> real_res;
+	for(coord i : res)
+	{
+		if(!backbone[i.i][i.j])
+			real_res.push_back(i);
+		backbone[i.i][i.j] = true;
+	}
+
+	return real_res;
 }
 
 // ----------
@@ -116,6 +126,7 @@ int value(vector<coord> routers)
         {
             int xt = routers[i].i + dx;
             if (xt < 0) break;
+            if (board[xt][routers[i].j] == '#') break;
             
             // top-left
             for (int dy=0;dy>=-radius;dy--)
@@ -160,6 +171,7 @@ int value(vector<coord> routers)
         {
             int xt = routers[i].i + dx;
             if (xt > n - 1) break;
+            if (board[xt][routers[i].j] == '#') break;
             
             // bottom-left
             for (int dy=0;dy>=-radius;dy--)
@@ -227,6 +239,7 @@ vector<coord> coord_value(vector<coord> routers)
         {
             int xt = routers[i].i + dx;
             if (xt < 0) break;
+            if (board[xt][routers[i].j] == '#') break;
             
             // top-left
             for (int dy=0;dy>=-radius;dy--)
@@ -271,6 +284,7 @@ vector<coord> coord_value(vector<coord> routers)
         {
             int xt = routers[i].i + dx;
             if (xt > n - 1) break;
+            if (board[xt][routers[i].j] == '#') break;
             
             // bottom-left
             for (int dy=0;dy>=-radius;dy--)
@@ -335,6 +349,95 @@ void write_output(string filename, vector<coord> routers, vector<coord> backbone
 
 // ----------
 
+vector<coord> make_initial(int num_routers)
+{
+	vector<coord> res;
+	for(int i = 0; i < num_routers; i++)
+	{
+		coord curr;
+		do
+		{
+			curr.i = rand() % n;
+			curr.j = rand() % m;
+		} while(board[curr.i][curr.j] != '.');
+
+		res.push_back(curr);
+	}
+
+	return res;
+}
+
+int coverage[N][N];
+
+void mod_coverage(coord router, int diff, int &score)
+{
+	for(coord tile : coord_value({router}))
+	{
+		if(coverage[tile.i][tile.j] == 0) score++;
+		coverage[tile.i][tile.j] += diff;
+		if(coverage[tile.i][tile.j] == 0) score--;
+	}
+}
+
+void perturb(coord &router)
+{
+	int diff = radius / 2;
+	int ii, jj;
+	for(int i = 0; i < 10 && i && board[ii][jj] != '.'; i++)
+	{
+	    ii = min(n - 1, max(0, router.i + rand() % (2 * diff + 1) - diff));
+		jj = min(m - 1, max(0, router.j + rand() % (2 * diff + 1) - diff));
+	}
+
+	if(board[ii][jj] == '.')
+	{
+		router.i = ii;
+		router.j = jj;
+	}
+}
+
+vector<coord> solve()
+{
+	//vector<coord> res = make_initial(budget / (cost_router + max(n, m)));
+	vector<coord> res = make_initial(825);
+	for(coord router : res)
+		for(coord tile : coord_value({router}))
+			coverage[tile.i][tile.j]++;
+
+
+	int score = 0;
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			score += coverage[i][j] > 0;
+
+	clock_t start = clock();
+	for(int iter = 0; clock() - start < 30 * CLOCKS_PER_SEC; iter++)
+	{
+		if(iter % 10000 == 9999) fprintf(stderr, "%d (%5d msec)\n", iter + 1, (clock() - start) * 1000 / CLOCKS_PER_SEC);
+		int curr = rand() % res.size();
+		coord old = res[curr];
+
+		int new_score = score;
+		
+		mod_coverage(res[curr], -1, new_score);
+		perturb(res[curr]);
+		mod_coverage(res[curr], +1, new_score);
+
+		if(new_score < score)
+		{
+			mod_coverage(res[curr], -1, new_score);
+			res[curr] = old;
+			mod_coverage(res[curr], +1, new_score);
+		}
+		else
+			score = new_score;
+	}
+
+	return res;
+}
+
+// ----------
+
 int main()
 {
     scanf("%d %d %d", &n, &m, &radius);
@@ -344,6 +447,9 @@ int main()
     for(int i = 0; i < n; i++)
 		for(int j = 0; j < m; j++)
 			scanf(" %c", &board[i][j]);
+
+	auto routers = solve();
+	write_output("out/opera.out", routers, make_backbone(routers));
 	
     return 0;
 }
