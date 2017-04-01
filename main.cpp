@@ -116,6 +116,7 @@ int value(vector<coord> routers)
         {
             int xt = routers[i].i + dx;
             if (xt < 0) break;
+            if (board[xt][routers[i].j] == '#') break;
             
             // top-left
             for (int dy=0;dy>=-radius;dy--)
@@ -160,6 +161,7 @@ int value(vector<coord> routers)
         {
             int xt = routers[i].i + dx;
             if (xt > n - 1) break;
+            if (board[xt][routers[i].j] == '#') break;
             
             // bottom-left
             for (int dy=0;dy>=-radius;dy--)
@@ -227,6 +229,7 @@ vector<coord> coord_value(vector<coord> routers)
         {
             int xt = routers[i].i + dx;
             if (xt < 0) break;
+            if (board[xt][routers[i].j] == '#') break;
             
             // top-left
             for (int dy=0;dy>=-radius;dy--)
@@ -271,6 +274,7 @@ vector<coord> coord_value(vector<coord> routers)
         {
             int xt = routers[i].i + dx;
             if (xt > n - 1) break;
+            if (board[xt][routers[i].j] == '#') break;
             
             // bottom-left
             for (int dy=0;dy>=-radius;dy--)
