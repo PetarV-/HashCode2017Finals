@@ -1,6 +1,7 @@
 #include <iostream>
 #include <queue>
 #include <vector>
+#include <cassert>
 
 using namespace std;
 
@@ -103,9 +104,9 @@ int value(vector<coord> routers)
     for (int i=0;i<routers.size();i++)
     {
         // check if outta bounds
-        if (routers[i].i < 0 || routers[i].i > n - 1 || routers[i].j < 0 || routers[i].j > m - 1) return -2;
+        if (routers[i].i < 0 || routers[i].i > n - 1 || routers[i].j < 0 || routers[i].j > m - 1) assert(false);
         // check if wallhacked
-        if (mat[routers[i].i][routers[i].j] == '#') return -1;
+        if (board[routers[i].i][routers[i].j] == '#') assert(false);
         // otherwise, expand up
         for (int dx=0;dx>=-radius;dx--)
         {
@@ -117,11 +118,11 @@ int value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt < 0) break;
-                if (mat[xt][yt] == '#') break; // no need to go on
+                if (board[xt][yt] == '#') break; // no need to go on
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret++;
+                    if (board[xt][yt] == '.') ret++;
                 }
             }
 
@@ -130,11 +131,11 @@ int value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt > m - 1) break;
-                if (mat[xt][yt] == '#') break;
+                if (board[xt][yt] == '#') break;
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret++;
+                    if (board[xt][yt] == '.') ret++;
                 }
             }
         }
@@ -150,11 +151,11 @@ int value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt < 0) break;
-                if (mat[xt][yt] == '#') break; // no need to go on
+                if (board[xt][yt] == '#') break; // no need to go on
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret++;
+                    if (board[xt][yt] == '.') ret++;
                 }
             }
 
@@ -163,11 +164,11 @@ int value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt > m - 1) break;
-                if (mat[xt][yt] == '#') break;
+                if (board[xt][yt] == '#') break;
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret++;
+                    if (board[xt][yt] == '.') ret++;
                 }
             }
         }
@@ -191,9 +192,9 @@ vector<coord> coord_value(vector<coord> routers)
     for (int i=0;i<routers.size();i++)
     {
         // check if outta bounds
-        if (routers[i].i < 0 || routers[i].i > n - 1 || routers[i].j < 0 || routers[i].j > m - 1) return -2;
+        if (routers[i].i < 0 || routers[i].i > n - 1 || routers[i].j < 0 || routers[i].j > m - 1) assert(false);
         // check if wallhacked
-        if (mat[routers[i].i][routers[i].j] == '#') return -1;
+        if (board[routers[i].i][routers[i].j] == '#') assert(false);
         // otherwise, expand up
         for (int dx=0;dx>=-radius;dx--)
         {
@@ -205,11 +206,11 @@ vector<coord> coord_value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt < 0) break;
-                if (mat[xt][yt] == '#') break; // no need to go on
+                if (board[xt][yt] == '#') break; // no need to go on
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret.push_back({xt, yt});
+                    if (board[xt][yt] == '.') ret.push_back({xt, yt});
                 }
             }
 
@@ -218,11 +219,11 @@ vector<coord> coord_value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt > m - 1) break;
-                if (mat[xt][yt] == '#') break;
+                if (board[xt][yt] == '#') break;
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret.push_back({xt, yt});
+                    if (board[xt][yt] == '.') ret.push_back({xt, yt});
                 }
             }
         }
@@ -238,11 +239,11 @@ vector<coord> coord_value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt < 0) break;
-                if (mat[xt][yt] == '#') break; // no need to go on
+                if (board[xt][yt] == '#') break; // no need to go on
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret.push_back({xt, yt});
+                    if (board[xt][yt] == '.') ret.push_back({xt, yt});
                 }
             }
 
@@ -251,11 +252,11 @@ vector<coord> coord_value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt > m - 1) break;
-                if (mat[xt][yt] == '#') break;
+                if (board[xt][yt] == '#') break;
                 if (!mark[xt][yt])
                 {
                     mark[xt][yt] = true;
-                    if (mat[xt][yt] == '.') ret.push_back({xt, yt});
+                    if (board[xt][yt] == '.') ret.push_back({xt, yt});
                 }
             }
         }
