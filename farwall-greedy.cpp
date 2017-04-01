@@ -362,10 +362,15 @@ void restore(vector<coord> &res, int &score)
 			coverage[i][j] = coverage_bak[i][j];
 }
 
-vector<coord> solve(vector<coord> res)
+int snapshot_id = 0;
+vector<coord> solve_local(vector<coord> res, int &out_score)
 {
 	//vector<coord> res = make_initial(budget / (cost_router + max(n, m)));
 /*	vector<coord> res = make_initial(825);*/
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			coverage[i][j] = 0;
+	
 	for(coord router : res)
 		for(coord tile : coord_value({router}))
 			coverage[tile.i][tile.j]++;
@@ -377,7 +382,6 @@ vector<coord> solve(vector<coord> res)
 
 	clock_t start = clock();
 	int ttl = 15000;
-	int snapshot_id = 0;
 
 	snapshot(res, score);
 	
@@ -393,7 +397,7 @@ vector<coord> solve(vector<coord> res)
 		perturb(res[curr]);
 		mod_coverage(res[curr], +1, new_score);
 
-		if(new_score > score) ttl = 15000;
+		if(new_score > score) ttl = 10000;
 		else ttl--;
 		
 		if(new_score < score)
@@ -407,7 +411,7 @@ vector<coord> solve(vector<coord> res)
 		
 		if(ttl < 0)
 		{
-			printf("Stopped improving, stopping climber.\n");
+			printf("Stopped improving, stopping local climber.\n");
 			break;
 		}
 
@@ -424,11 +428,43 @@ vector<coord> solve(vector<coord> res)
 			if(clock() - start > snapshot_id * 30 * CLOCKS_PER_SEC)
 			{
 				string name = "out/" + case_name + "." + to_string(snapshot_id) + ".bak";
-				printf("Saving snapshot %s (w/ score %d)... ", name.c_str(), score);
+				int cost = cost_router * res.size() + cost_edge * make_backbone(res).size();
+				printf("Saving snapshot %s (w/ score %d, under budget by %d)... ", name.c_str(), score, budget - cost);
 				write_output(name, res, make_backbone(res));
 				printf("Done.\n");
 				snapshot_id++;
 			}
+		}
+	}
+
+	out_score = score;
+	return res;
+}
+
+vector<coord> solve(vector<coord> res)
+{
+	int score;
+	res = solve_local(res, score);
+
+	while(true)
+	{
+		vector<coord> next = res;
+		swap(next[0], next[rand() % next.size()]);
+		do
+		{
+		    next[0].i = rand() % n;
+		    next[0].j = rand() % m;
+		} while(board[next[0].i][next[0].j] != '.');
+
+		int next_score;
+	    next = solve_local(next, next_score);
+
+		printf("ils score after jump: %d -> %d\n", score, next_score);
+		
+		if(next_score > score)
+		{
+			res = next;
+			score = next_score;
 		}
 	}
 
