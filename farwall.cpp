@@ -23,13 +23,17 @@ int coverdist[N][N];
 int left_uncovered;
 
 
-const int direction_count=4;
-int mov[4][2]=
+const int direction_count=8;
+int mov[8][2]=
 {
     1,0,
     0,1,
     -1,0,
     0,-1,
+    1,1,
+    1,-1,
+    -1,1,
+    -1,-1,
 };
 
 void generate_coverdist()
@@ -97,13 +101,13 @@ vector<coord> coord_value(vector<coord> routers)
             int xt = routers[i].i + dx;
             if (xt < 0) break;
             if (board[xt][routers[i].j] == '#') break;
-            
+
             // top-left
             for (int dy=0;dy>=-radius;dy--)
             {
                 int yt = routers[i].j + dy;
                 if (yt <= ly) break;
-                if (board[xt][yt] == '#') 
+                if (board[xt][yt] == '#')
                 {
                     ly = max(ly, yt);
                     break; // no need to go on
@@ -120,7 +124,7 @@ vector<coord> coord_value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt >= ry) break;
-                if (board[xt][yt] == '#') 
+                if (board[xt][yt] == '#')
                 {
                     ry = min(ry, yt);
                     break;
@@ -132,7 +136,7 @@ vector<coord> coord_value(vector<coord> routers)
                 }
             }
         }
-        
+
         ly = -1;
         ry = m;
 
@@ -142,13 +146,13 @@ vector<coord> coord_value(vector<coord> routers)
             int xt = routers[i].i + dx;
             if (xt > n - 1) break;
             if (board[xt][routers[i].j] == '#') break;
-            
+
             // bottom-left
             for (int dy=0;dy>=-radius;dy--)
             {
                 int yt = routers[i].j + dy;
                 if (yt <= ly) break;
-                if (board[xt][yt] == '#') 
+                if (board[xt][yt] == '#')
                 {
                     ly = max(ly, yt);
                     break; // no need to go on
@@ -165,7 +169,7 @@ vector<coord> coord_value(vector<coord> routers)
             {
                 int yt = routers[i].j + dy;
                 if (yt >= ry) break;
-                if (board[xt][yt] == '#') 
+                if (board[xt][yt] == '#')
                 {
                     ry = min(ry, yt);
                     break;
@@ -233,7 +237,7 @@ vector<coord> make_backbone(vector<coord> routers)
 {
     routers.push_back({start_i, start_j});
 	swap(routers[0], routers[routers.size() - 1]);
-    
+
     priority_queue<edge> edges;
 	for(int i = 0; i < routers.size(); i++)
 		in_mst[i] = false;
@@ -241,7 +245,7 @@ vector<coord> make_backbone(vector<coord> routers)
 	for(int i = 0; i < n; i++)
 		for(int j = 0; j < m; j++)
 			backbone[i][j] = false;
-	
+
 	in_mst[0] = true;
 	for(int i = 1; i < routers.size(); i++)
 		edges.push({0, i, dist(routers[0], routers[i])});
@@ -281,7 +285,7 @@ vector<coord> make_backbone(vector<coord> routers)
 			real_res.push_back(i);
 		backbone[i.i][i.j] = true;
 	}
-	
+
 	return real_res;
 }
 
