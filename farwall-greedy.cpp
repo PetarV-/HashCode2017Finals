@@ -590,12 +590,12 @@ int main(int argc, char *argv[])
 	if(argc == 4)
 	{
 		FILE *f = fopen(argv[3], "r");
-		int n;
-		fscanf(f,"%d", &n);
-		while(n--) { int x, y; fscanf(f,"%d %d", &x, &y); }
-		fscanf(f,"%d", &n);
+		int nn;
+		fscanf(f,"%d", &nn);
+		while(nn--) { int x, y; fscanf(f,"%d %d", &x, &y); }
+		fscanf(f,"%d", &nn);
 
-		while(n--)
+		while(nn--)
 		{
 
 			coord c;
@@ -604,6 +604,19 @@ int main(int argc, char *argv[])
 		}
 		fclose(f);
 		printf("Done loading.\n");
+
+		for(int i = routers.size(); i < num_routers_param; i++)
+		{
+			coord c;
+			do
+			{
+				c.i = rand() % n;
+				c.j = rand() % m;
+				printf("%d %d\n", c.i, c.j);
+			} while(board[c.i][c.j] != '.');
+			routers.push_back(c);
+			printf("Added new router.\n");
+		}
 	}
 	else
 	{
