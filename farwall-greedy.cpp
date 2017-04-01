@@ -22,7 +22,7 @@ char covered[N][N];
 
 int coverdist[N][N];
 int left_uncovered;
-
+int num_routers_param;
 
 const int direction_count=8;
 int mov[8][2]=
@@ -292,11 +292,166 @@ vector<coord> make_backbone(vector<coord> routers)
 
 // ----------
 
+string case_name;
 
-int main()
+// ----------
+
+vector<coord> make_initial(int num_routers)
 {
-    freopen(test_files[2],"r",stdin);
+	vector<coord> res;
+	for(int i = 0; i < num_routers; i++)
+	{
+		coord curr;
+		do
+		{
+			curr.i = rand() % n;
+			curr.j = rand() % m;
+		} while(board[curr.i][curr.j] != '.');
+
+		res.push_back(curr);
+	}
+
+	return res;
+}
+
+int coverage[N][N], coverage_bak[N][N];
+vector<coord> res_bak; int score_bak;
+
+void mod_coverage(coord router, int diff, int &score)
+{
+	for(coord tile : coord_value({router}))
+	{
+		if(coverage[tile.i][tile.j] == 0) score++;
+		coverage[tile.i][tile.j] += diff;
+		if(coverage[tile.i][tile.j] == 0) score--;
+	}
+}
+
+void perturb(coord &router)
+{
+	int diff = radius / 2;
+	int ii, jj;
+	for(int i = 0; i < 10 && (!i || board[ii][jj] != '.'); i++)
+	{
+	    ii = min(n - 1, max(0, router.i + rand() % (2 * diff + 1) - diff));
+		jj = min(m - 1, max(0, router.j + rand() % (2 * diff + 1) - diff));
+	}
+
+	if(board[ii][jj] == '.')
+	{
+		router.i = ii;
+		router.j = jj;
+	}
+}
+
+void snapshot(vector<coord> &res, int score)
+{
+	res_bak = res;
+	score_bak = score;
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			coverage_bak[i][j] = coverage[i][j];
+}
+
+void restore(vector<coord> &res, int &score)
+{
+	res = res_bak;
+	score = score_bak;
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			coverage[i][j] = coverage_bak[i][j];
+}
+
+vector<coord> solve(vector<coord> res)
+{
+	//vector<coord> res = make_initial(budget / (cost_router + max(n, m)));
+/*	vector<coord> res = make_initial(825);*/
+	for(coord router : res)
+		for(coord tile : coord_value({router}))
+			coverage[tile.i][tile.j]++;
+	
+	int score = 0;
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			score += coverage[i][j] > 0;
+
+	clock_t start = clock();
+	int ttl = 15000;
+	int snapshot_id = 0;
+
+	snapshot(res, score);
+	
+	for(int iter = 0; ; iter++)
+	{
+		if(iter % 10000 == 9999) fprintf(stderr, "%d (%5d msec), score = %d\n", iter + 1, (clock() - start) * 1000 / CLOCKS_PER_SEC, score);
+		int curr = rand() % res.size();
+		coord old = res[curr];
+
+		int new_score = score;
+		
+		mod_coverage(res[curr], -1, new_score);
+		perturb(res[curr]);
+		mod_coverage(res[curr], +1, new_score);
+
+		if(new_score > score) ttl = 15000;
+		else ttl--;
+		
+		if(new_score < score)
+		{
+			mod_coverage(res[curr], -1, new_score);
+			res[curr] = old;
+			mod_coverage(res[curr], +1, new_score);
+		}
+		else
+			score = new_score;
+		
+		if(ttl < 0)
+		{
+			printf("Stopped improving, stopping climber.\n");
+			break;
+		}
+
+		if(iter % 10000 == 9998)
+		{
+			int cost = cost_router * res.size() + cost_edge * make_backbone(res).size();
+			if(cost > budget)
+			{
+				printf("Warning: over budget by %d, reverting!\n", budget - cost);
+			    restore(res, score);
+			}
+			snapshot(res, score);
+
+			if(clock() - start > snapshot_id * 30 * CLOCKS_PER_SEC)
+			{
+				string name = "out/" + case_name + "." + to_string(snapshot_id) + ".bak";
+				printf("Saving snapshot %s (w/ score %d)... ", name.c_str(), score);
+				write_output(name, res, make_backbone(res));
+				printf("Done.\n");
+				snapshot_id++;
+			}
+		}
+	}
+
+	return res;
+}
+
+// ----------
+
+int main(int argc, char *argv[])
+{
+    //freopen(test_files[2],"r",stdin);
     //freopen("dump.txt","w",stdout);
+
+	if(argc != 3)
+	{
+		printf("Usage: wall <case name> <num of routers>\n");
+		return 1;
+	}
+	case_name = argv[1];
+	num_routers_param = atoi(argv[2]);
+	printf("Solving case %s (with %d routers)...\n", case_name.c_str(), num_routers_param);
+	freopen(("tests/" + case_name + ".in").c_str(), "r", stdin);
+	
     scanf("%d %d %d", &n, &m, &radius);
     scanf("%d %d %d", &cost_edge, &cost_router, &budget);
     scanf("%d %d", &start_i, &start_j);
@@ -322,9 +477,9 @@ int main()
     vector <coord> routers;
     generate_coverdist();
     int lastuncoveredi=0;
-    while (left_uncovered && routers.size()<830)
+    while (left_uncovered && routers.size()<num_routers_param)
     {
-        printf("PROGRESS %d %d\n",left_uncovered,routers.size());
+        if(routers.size() % 20 == 0) printf("PROGRESS %d %d\n",left_uncovered,routers.size());
         int ti,tj,bestwall;
         bestwall=-1;
         for (int i=0; i<n; i++)
@@ -350,6 +505,8 @@ int main()
         generate_coverdist();
     }
 
-    write_output("out/charleston_road.out", routers, make_backbone(routers));
+	printf("Generated initial solution, climbing...\n");
+	routers = solve(routers);
+    write_output("out/opera.out", routers, make_backbone(routers));
     return 0;
 }
