@@ -362,6 +362,7 @@ void restore(vector<coord> &res, int &score)
 			coverage[i][j] = coverage_bak[i][j];
 }
 
+clock_t start;
 int snapshot_id = 0;
 vector<coord> solve_local(vector<coord> res, int &out_score)
 {
@@ -380,7 +381,7 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 		for(int j = 0; j < m; j++)
 			score += coverage[i][j] > 0;
 
-	clock_t start = clock();
+    start = clock();
 	int ttl = 15000;
 
 	snapshot(res, score);
@@ -425,7 +426,7 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 			}
 			snapshot(res, score);
 
-			if(clock() - start > snapshot_id * 30 * CLOCKS_PER_SEC)
+			if(clock() > snapshot_id * 30 * CLOCKS_PER_SEC)
 			{
 				string name = "out/" + case_name + "." + to_string(snapshot_id) + ".bak";
 				int cost = cost_router * res.size() + cost_edge * make_backbone(res).size();
