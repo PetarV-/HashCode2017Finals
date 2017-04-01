@@ -291,7 +291,102 @@ vector<coord> make_backbone(vector<coord> routers)
 }
 
 // ----------
+// ----------
 
+vector<coord> make_initial(int num_routers)
+{
+	vector<coord> res;
+	for(int i = 0; i < num_routers; i++)
+	{
+		coord curr;
+		do
+		{
+			curr.i = rand() % n;
+			curr.j = rand() % m;
+		} while(board[curr.i][curr.j] != '.');
+
+		res.push_back(curr);
+	}
+
+	return res;
+}
+
+int coverage[N][N];
+
+void mod_coverage(coord router, int diff, int &score)
+{
+	for(coord tile : coord_value({router}))
+	{
+		if(coverage[tile.i][tile.j] == 0) score++;
+		coverage[tile.i][tile.j] += diff;
+		if(coverage[tile.i][tile.j] == 0) score--;
+	}
+}
+
+void perturb(coord &router)
+{
+	int diff = radius / 2;
+	int ii, jj;
+	for(int i = 0; i < 10 && (!i || board[ii][jj] != '.'); i++)
+	{
+	    ii = min(n - 1, max(0, router.i + rand() % (2 * diff + 1) - diff));
+		jj = min(m - 1, max(0, router.j + rand() % (2 * diff + 1) - diff));
+	}
+
+	if(board[ii][jj] == '.')
+	{
+		router.i = ii;
+		router.j = jj;
+	}
+}
+
+vector<coord> solve(vector<coord> res)
+{
+	//vector<coord> res = make_initial(budget / (cost_router + max(n, m)));
+/*	vector<coord> res = make_initial(825);*/
+	for(coord router : res)
+		for(coord tile : coord_value({router}))
+			coverage[tile.i][tile.j]++;
+
+
+	int score = 0;
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			score += coverage[i][j] > 0;
+
+	clock_t start = clock();
+	int ttl = 5000;
+	for(int iter = 0; clock() - start < 150 * CLOCKS_PER_SEC; iter++)
+	{
+		if(iter % 10000 == 9999) fprintf(stderr, "%d (%5d msec), score = %d\n", iter + 1, (clock() - start) * 1000 / CLOCKS_PER_SEC, score);
+		int curr = rand() % res.size();
+		coord old = res[curr];
+
+		int new_score = score;
+		
+		mod_coverage(res[curr], -1, new_score);
+		perturb(res[curr]);
+		mod_coverage(res[curr], +1, new_score);
+
+		if(new_score > score) ttl = 5000;
+		else ttl--;
+		
+		if(new_score < score)
+		{
+			mod_coverage(res[curr], -1, new_score);
+			res[curr] = old;
+			mod_coverage(res[curr], +1, new_score);
+		}
+		else
+			score = new_score;
+
+		if(ttl < 0) printf("Stopped improving, stopping climber.\n");
+	}
+
+	return res;
+}
+
+// ----------
 
 int main()
 {
@@ -324,7 +419,7 @@ int main()
     int lastuncoveredi=0;
     while (left_uncovered && routers.size()<830)
     {
-        printf("PROGRESS %d %d\n",left_uncovered,routers.size());
+        if(routers.size() % 20 == 0) printf("PROGRESS %d %d\n",left_uncovered,routers.size());
         int ti,tj,bestwall;
         bestwall=-1;
         for (int i=0; i<n; i++)
@@ -350,6 +445,8 @@ int main()
         generate_coverdist();
     }
 
-    write_output("out/charleston_road.out", routers, make_backbone(routers));
+	printf("Generated initial solution, climbing...\n");
+	routers = solve(routers);
+    write_output("out/opera.out", routers, make_backbone(routers));
     return 0;
 }
