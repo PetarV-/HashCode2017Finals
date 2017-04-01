@@ -20,6 +20,13 @@ struct coord
     {
         return i!=op.i || j!=op.j;
     }
+    inline bool operator < (const coord &op) const
+    {
+        if (i!=op.i)
+            return i<op.i;
+        return j<op.j;
+    }
+
 };
 
 char covered[N][N];
@@ -482,20 +489,22 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 
 		if(clock() > snapshot_id * 60 * CLOCKS_PER_SEC)
 		{
-			int cost = cost_router * res.size() + cost_edge * make_backbone(res).size();
+		    auto backbone = make_backbone(res);
+			int cost = cost_router * res.size() + cost_edge * backbone.size();
 			if(cost > budget)
 			{
-				printf("Warning: over budget by %d, reverting!\n", budget - cost);
+			    printf("Warning: over budget by %d, reverting!\n", budget - cost);
 			    restore(res, score);
+			    backbone = make_backbone(res);
 			}
 			snapshot(res, score);
 
 			if(clock() > snapshot_id * 60 * CLOCKS_PER_SEC)
 			{
 				string name = "out/" + case_name + "." + to_string(snapshot_id) + ".bak";
-				int cost = cost_router * res.size() + cost_edge * make_backbone(res).size();
+				int cost = cost_router * res.size() + cost_edge * backbone.size();
 				printf("Saving snapshot %s (w/ score %d, under budget by %d)... ", name.c_str(), score, budget - cost);
-				write_output(name, res, make_backbone(res));
+				write_output(name, res, backbone);
 				printf("Done.\n");
 				snapshot_id++;
 			}
@@ -509,8 +518,10 @@ vector<coord> solve_local(vector<coord> res, int &out_score)
 vector<coord> solve(vector<coord> res)
 {
 	int score;
+	int optimal_snapshot_id = 0;
 	res = solve_local(res, score);
 
+	clock_t last_save = clock();
 	while(true)
 	{
 		vector<coord> next = res;
@@ -531,6 +542,18 @@ vector<coord> solve(vector<coord> res)
 			res = next;
 			score = next_score;
 		}
+
+		if(clock() - last_save >  60 * CLOCKS_PER_SEC)
+		{
+			last_save = clock();
+			auto backbone = make_backbone(res);
+			string name = "out/" + case_name + "." + to_string(snapshot_id) + ".opt.bak";
+			int cost = cost_router * res.size() + cost_edge * backbone.size();
+			printf("Saving _optimal_ snapshot %s (w/ score %d, under budget by %d)... ", name.c_str(), score, budget - cost);
+			write_output(name, res, backbone);
+			printf("Done.\n");
+			optimal_snapshot_id++;
+		}
 	}
 
 	return res;
@@ -543,7 +566,7 @@ int main(int argc, char *argv[])
     //freopen(test_files[2],"r",stdin);
     //freopen("dump.txt","w",stdout);
 
-	if(argc != 3)
+	if(argc < 3)
 	{
 		printf("Usage: wall <case name> <num of routers>\n");
 		return 1;
@@ -553,16 +576,38 @@ int main(int argc, char *argv[])
 	printf("Solving case %s (with %d routers)...\n", case_name.c_str(), num_routers_param);
 	freopen(("tests/" + case_name + ".in").c_str(), "r", stdin);
 	
-    scanf("%d %d %d", &n, &m, &radius);
+        scanf("%d %d %d", &n, &m, &radius);
     scanf("%d %d %d", &cost_edge, &cost_router, &budget);
     scanf("%d %d", &start_i, &start_j);
 
     printf("%d %d\n",start_i,start_j);
-
+	
     for(int i = 0; i < n; i++)
         for(int j = 0; j < m; j++)
             scanf(" %c", &board[i][j]);
 
+	    vector <coord> routers;
+	if(argc == 4)
+	{
+		FILE *f = fopen(argv[3], "r");
+		int n;
+		fscanf(f,"%d", &n);
+		while(n--) { int x, y; fscanf(f,"%d %d", &x, &y); }
+		fscanf(f,"%d", &n);
+
+		while(n--)
+		{
+
+			coord c;
+			fscanf(f,"%d %d", &c.i ,&c.j);
+			routers.push_back(c);
+		}
+		fclose(f);
+		printf("Done loading.\n");
+	}
+	else
+	{
+	
     for (int i=0; i<n; i++)
         for (int j=0; j<m; j++)
         {
@@ -575,12 +620,14 @@ int main(int argc, char *argv[])
                 covered[i][j]==0;
             }
         }
-    vector <coord> routers;
+
     generate_coverdist();
     int lastuncoveredi=0;
-    while (left_uncovered && routers.size()<num_routers_param)
+    int bindwall=0;
+    while (left_uncovered && routers.size() < num_routers_param)
     {
-        if(routers.size() % 20 == 0) printf("PROGRESS %d %d\n",left_uncovered,routers.size());
+        if (routers.size()%100==0)
+            printf("PROGRESS %d %d\n",left_uncovered,routers.size());
         int ti,tj,bestwall;
         bestwall=-1;
         for (int i=0; i<n; i++)
@@ -594,17 +641,77 @@ int main(int argc, char *argv[])
                         bestwall=coverdist[i][j];
                     }
         }
-        int soli=ti;
-        int solj=tj;
-
+        int soli,solj;
+        if (bestwall>radius - 1)
+        {
+            soli=ti;
+            solj=tj;
+        }
+        else
+        {
+            bindwall=1;
+            break;
+        }
         routers.push_back(coord{soli,solj});
-        //printf("%d %d\n",soli,solj);
-        //fflush(stdout);
         vector <coord> seen=coord_value(vector<coord>{{soli,solj}});
         for (int i=0; i<seen.size(); i++)
             covered[seen[i].i][seen[i].j]=1;
         generate_coverdist();
     }
+    priority_queue <pair <int,coord> > fields_covered;
+    for (int i=0; i<n; i++)
+        for (int j=0; j<m; j++)
+            if (board[i][j]=='.')
+            {
+                vector <coord> sees=coord_value(vector<coord>{{i,j}});
+                int cscore=0;
+                for (int t=0; t<sees.size(); t++)
+                    if (covered[sees[t].i][sees[t].j]==0)
+                        cscore++;
+                fields_covered.push(make_pair(cscore,coord{i,j}));
+            }
+    while (left_uncovered && routers.size() < num_routers_param)
+    {
+         pair <int,coord> najbolji=fields_covered.top();
+        fields_covered.pop();
+        int i=najbolji.second.i;
+        int j=najbolji.second.j;
+
+        vector <coord> sees=coord_value(vector<coord>{{i,j}});
+        int cscore=0;
+        for (int t=0; t<sees.size(); t++)
+            if (covered[sees[t].i][sees[t].j]==0)
+                cscore++;
+        int soli,solj;
+        bool passed;
+        if (cscore==najbolji.first)
+        {
+            soli=i;
+            solj=j;
+            passed=true;
+        }
+        else
+        {
+            fields_covered.push(make_pair(cscore,najbolji.second));
+            passed=false;
+        }
+
+        if (passed)
+        {
+            routers.push_back(coord{soli,solj});
+            vector <coord> seen=coord_value(vector<coord>{{soli,solj}});
+            for (int i=0; i<seen.size(); i++)
+            {
+                if (covered[seen[i].i][seen[i].j]==0)
+                {
+                    covered[seen[i].i][seen[i].j]=1;
+                    left_uncovered--;
+                }
+            }
+        }
+    }
+	}
+
 
 	printf("Generated initial solution, climbing...\n");
 	routers = solve(routers);
