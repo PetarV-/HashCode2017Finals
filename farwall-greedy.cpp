@@ -595,6 +595,11 @@ int main(int argc, char *argv[])
 		while(nn--) { int x, y; fscanf(f,"%d %d", &x, &y); }
 		fscanf(f,"%d", &nn);
 
+		if(nn > num_routers_param)
+		{
+			printf("too many routers in file, will drop some!\n");
+			nn = num_routers_param;
+		}
 		while(nn--)
 		{
 
@@ -607,13 +612,22 @@ int main(int argc, char *argv[])
 
 		for(int i = routers.size(); i < num_routers_param; i++)
 		{
+			for(int i = 0; i < n; i++)
+				for(int j = 0; j < m; j++)
+					coverage[i][j] = 0;
+			
+			for(coord router : routers)
+				for(coord tile : coord_value({router}))
+					coverage[tile.i][tile.j]++;
+			
 			coord c;
 			do
 			{
 				c.i = rand() % n;
 				c.j = rand() % m;
-				printf("%d %d\n", c.i, c.j);
-			} while(board[c.i][c.j] != '.');
+				
+			} while(board[c.i][c.j] != '.' || coverage[c.i][c.j]);
+			printf("%d %d\n", c.i, c.j);
 			routers.push_back(c);
 			printf("Added new router.\n");
 		}
