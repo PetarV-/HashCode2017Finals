@@ -1,3 +1,5 @@
+#include <vector>
+#include <string>
 #include <queue>
 #include <cstdio>
 #include <cassert>
@@ -154,9 +156,116 @@ vector<coord> coord_value(vector<coord> routers)
     return ret;
 }
 
+// -----------
+// output
+
+void write_output(string filename, vector<coord> routers, vector<coord> backbone)
+{
+    FILE *f = fopen(filename.c_str(), "w");
+    if(!f)
+    {
+		fprintf(stderr, "Opening file %s for writing failed!\n", filename.c_str());
+		return;
+    }
+
+    fprintf(f, "%d\n", backbone.size());
+	for(coord i : backbone)
+		fprintf(f, "%d %d\n", i.i, i.j);
+
+	fprintf(f, "%d\n", routers.size());
+	for(coord i : routers)
+		fprintf(f, "%d %d\n", i.i, i.j);
+
+	fclose(f);
+}
+
+// ----------
+// ----------
+// backbone
+
+struct edge
+{
+	int from, to;
+	int len;
+} ;
+
+bool operator<(edge a, edge b)
+{
+	// > for priority_queue as min-heap
+	return a.len == b.len ? a.from == b.from ? a.to < b.to : a.from < b.from : a.len > b.len;
+}
+
+int dist(coord a, coord b)
+{
+	return max(abs(a.i - b.i), abs(a.j - b.j));
+}
+
+int sgn(int x) { return x ? (x > 0 ? 1 : -1) : 0; }
+
+bool in_mst[N];
+bool backbone[N][N];
+vector<coord> make_backbone(vector<coord> routers)
+{
+    routers.push_back({start_i, start_j});
+	swap(routers[0], routers[routers.size() - 1]);
+    
+    priority_queue<edge> edges;
+	for(int i = 0; i < routers.size(); i++)
+		in_mst[i] = false;
+
+	for(int i = 0; i < n; i++)
+		for(int j = 0; j < m; j++)
+			backbone[i][j] = false;
+	
+	in_mst[0] = true;
+	for(int i = 1; i < routers.size(); i++)
+		edges.push({0, i, dist(routers[0], routers[i])});
+
+	vector<coord> res;
+	for(int iter = 1; iter < routers.size(); iter++)
+	{
+		while(in_mst[edges.top().to])
+			edges.pop();
+
+		edge curr = edges.top();
+		edges.pop();
+
+//		printf("(%d,%d) -> (%d,%d)\n", routers[curr.from].i, routers[curr.from].j, routers[curr.to].i, routers[curr.to].j);
+
+		in_mst[curr.to] = true;
+		for(int i = 0; i < routers.size(); i++)
+			if(!in_mst[i])
+				edges.push({curr.to, i, dist(routers[curr.to], routers[i])});
+
+		// draw edge
+		int ii = routers[curr.from].i, jj = routers[curr.from].j;
+		while(ii != routers[curr.to].i || jj != routers[curr.to].j)
+		{
+//			printf("%d %d\n", ii, jj);
+		    ii += sgn(routers[curr.to].i - ii);
+		    jj += sgn(routers[curr.to].j - jj);
+			res.push_back({ii, jj});
+		}
+		res.push_back({ii, jj});
+	}
+
+	vector<coord> real_res;
+	for(coord i : res)
+	{
+		if(!backbone[i.i][i.j])
+			real_res.push_back(i);
+		backbone[i.i][i.j] = true;
+	}
+	
+	return real_res;
+}
+
+// ----------
+
+
 int main()
 {
-    freopen(test_files[0],"r",stdin);
+//    freopen(test_files[0],"r",stdin);
     //freopen("dump.txt","w",stdout);
     scanf("%d %d %d", &n, &m, &radius);
     scanf("%d %d %d", &cost_edge, &cost_router, &budget);
@@ -208,12 +317,14 @@ int main()
             }
         }
         routers.push_back(coord{soli,solj});
-        printf("%d %d\n",soli,solj);
-        fflush(stdout);
+        //printf("%d %d\n",soli,solj);
+        //fflush(stdout);
         seen=coord_value(vector<coord>{{soli,solj}});
         for (int i=0; i<seen.size(); i++)
             covered[seen[i].i][seen[i].j]=1;
         generate_coverdist();
     }
+
+    write_output("out/tmp.txt", routers, make_backbone(routers));
     return 0;
 }
